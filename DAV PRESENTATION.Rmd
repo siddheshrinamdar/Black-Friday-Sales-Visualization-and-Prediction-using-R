@@ -1,0 +1,168 @@
+---
+title: "DAV"
+author: "Siddhesh, Akkshay, Girish, Akhil"
+date: "27 April 2019"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+
+Importing the Black Friday Dataset and importing the libraries
+
+```{r}
+library(readr)
+library(tidyverse)
+library(ggplot2)
+BlackFriday <- read.csv("C:/Users/siddh/Desktop/Rutgers Spring 19/DAV/BlackFriday.csv", header=TRUE)
+View(BlackFriday)
+bf<-BlackFriday
+head(BlackFriday)
+
+```
+
+
+EXPLORATORY DATA ANALYSIS
+
+
+#count the number of male and female customers in the data set
+
+```{r}
+bf %>% filter(Gender == "F") %>% nrow()
+bf %>% filter(Gender == "M") %>% nrow()
+```
+
+As we can see from the above result, we have 132,197 Females and 405,380 males.
+
+
+
+#count the number of married and unmarried customers in the data set
+```{r}
+bf %>% filter(Marital_Status==1) %>% nrow()
+bf %>% filter(Marital_Status==0) %>% nrow()
+```
+
+As we can see from the above result, we have 219760 married and 317817 unmarried customers.
+
+
+```{r}
+bf %>% group_by(Marital_Status) %>% summarize(purchase_amount = sum(as.numeric(Purchase))) %>% ggplot(mapping = aes(x = factor(Marital_Status), y = purchase_amount, fill = factor(Marital_Status))) + geom_col() + theme_bw()
+
+```
+
+
+
+```{r}
+attach(BlackFriday)
+
+BlackFriday  %>% group_by(Age, Gender) %>% summarize(purchase_amount = sum(as.numeric(Purchase))) %>% ggplot(mapping = aes(x = factor(Age), y = purchase_amount, fill = Gender)) + geom_col() + theme_bw()
+
+```
+
+
+
+```{r}
+temp<-subset(bf, !duplicated(Occupation))
+temp1<-temp$Occupation
+temp1
+tab<-table(temp1)
+tab
+```
+
+From this we can see there are 21 occupations. Now let's create a graph depending on the occupations.
+
+
+```{r}
+data3 <- bf %>% group_by(Occupation) %>% summarize(purchase_amount = sum(as.numeric(Purchase)))
+ggplot(data3, mapping = aes(x = factor(Occupation), y = purchase_amount, fill = factor(Occupation))) + geom_col() + theme_bw()
+
+
+```
+
+
+LINEAR REGRESSION : 
+
+
+```{r}
+str(bf)
+model<-lm(Purchase~. -User_ID -Product_ID, data=bf)
+summary(model)
+
+```
+
+
+As from above, we find out marital status is insignicifant, we remove the column.
+
+
+
+
+
+```{r}
+smp_size <- floor(0.75 * nrow(BlackFriday))
+set.seed(123)
+train_ind <- sample(seq_len(nrow(BlackFriday)), size = smp_size)
+train_set <- BlackFriday[train_ind,c(3:7,10:12)]
+
+names(train_set)
+test_set <- BlackFriday[-train_ind, ]
+y_test<-as.data.frame(test_set[,12], drop=false)
+names(y_test)<-c("purchase")
+test_set<-as.data.frame(test_set[,c(3:7,10:11)], drop=false)
+
+
+model1<-lm(Purchase~., data=train_set)
+summary(model1)
+```
+
+
+```{r}
+
+summary(model)
+pred<-predict(model1,newdata = test_set)
+pred1<-na.omit(pred)
+head(pred1,100)
+
+```
+
+
+
+
+
+#In the model summary above, we can notice interesting findings. During Black Friday, Males make purchases by 319.478$ more than the Female do (which is an intercept here). Also, people of age between 51-55 make more $1025.9 more purchases than the teenagers of age between 0 and 17. Not to mention the fact that people of 51-55 age have overall spent more money then others.By looking at all categories, we can see that 51-55 is the "maximum" point of purchase age. Below 51, by age the purchase ammount also increases, and after 55+ there is a decline again   
+
+
+
+
+
+#RMSE is 4630$, which is too high, that's why this model is not a good one for doing any predictions. The same thing we can say looking at R-adjusted. 
+#Dataset's independent Variables cannot predict Purchase variable accurately.
+
+
+
+
+
+```{r}
+library(ggplot2)
+ggplot(model1, aes(x = Age, y = Purchase)) + 
+  geom_boxplot() + 
+  ggtitle("Purchase amounts by Age")
+```
+
+#Our conclusions regarding Age and Purchase relations is confirmed by the boxplot. As we can see, there is slight difference among the ages and the 51-5 age is in top of them. However, the diference is not significant. Now let's look at gender
+
+
+
+```{r}
+ggplot(model1, aes(x = Gender, y = Purchase)) + 
+  geom_boxplot() + 
+  ggtitle("Purchase am
+          ounts by Gender")
+```
+
+#The boxplot confirmes our previous asummption that males spend more on black fridays than females, but again with no significant difference
+
+
+
+
+
+
